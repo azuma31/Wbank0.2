@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wウォレット</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <!-- ローディング表示 -->
+    <div id="loading" class="loading hidden">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>処理中...</p>
+        </div>
+    </div>
+
+    <!-- エラー・成功メッセージ -->
+    <div id="message" class="message hidden">
+        <p id="message-text"></p>
+    </div>
+
+    <!-- ヘッダー -->
+    <header class="header">
+        <nav class="nav container">
+            <div class="logo">Wウォレット</div>
+            <div id="nav-buttons">
+                <span id="username-display" class="hidden"></span>
+                <button id="logout-button" onclick="handleLogout()" class="btn btn-outline hidden">完全ログアウト</button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="container">
+        <!-- ログインフォーム -->
+        <div id="login-form" class="card auth-form hidden">
+            <h2>ログイン</h2>
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="login-username">アカウント名</label>
+                    <input type="text" id="login-username" 
+                           pattern="^[A-Za-z0-9_-]{4,16}$" 
+                           title="4～16文字の半角英数字、ハイフン、アンダースコアが使用できます"
+                           required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">パスワード</label>
+                    <input type="password" id="login-password" 
+                           pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$"
+                           required>
+                </div>
+                <button type="submit" class="btn btn-block">ログイン</button>
+                <p class="form-helper">
+                    アカウントをお持ちでない方は<a href="#" onclick="showRegister(); return false;">新規登録</a>へ
+                </p>
+            </form>
+        </div>
+
+        <!-- 新規登録フォーム -->
+        <div id="register-form" class="card auth-form hidden">
+            <h2>新規登録</h2>
+            <form onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="register-username">アカウント名</label>
+                    <input type="text" id="register-username" 
+                           pattern="^[A-Za-z0-9_-]{4,16}$" 
+                           title="4～16文字の半角英数字、ハイフン、アンダースコアが使用できます"
+                           required>
+                    <span class="input-hint">4～16文字の半角英数字、ハイフン(-)、アンダースコア(_)が使用できます</span>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">パスワード</label>
+                    <input type="password" id="register-password" 
+                           pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$" 
+                           title="8文字以上の英数字を含むパスワードを設定してください"
+                           required>
+                    <span class="input-hint">8文字以上の英数字を含むパスワードを設定してください</span>
+                </div>
+                <div class="form-group">
+                    <label for="register-confirm-password">パスワード（確認）</label>
+                    <input type="password" id="register-confirm-password" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-pin">PINコード（4桁）</label>
+                    <input type="password" 
+                           id="register-pin" 
+                           pattern="\d{4}" 
+                           maxlength="4" 
+                           inputmode="numeric"
+                           autocomplete="off"
+                           required>
+                    <span class="input-hint">4桁の数字を入力してください</span>
+                </div>
+                <div class="form-group">
+                    <label for="register-confirm-pin">PINコード（確認）</label>
+                    <input type="password" 
+                           id="register-confirm-pin" 
+                           pattern="\d{4}" 
+                           maxlength="4" 
+                           inputmode="numeric"
+                           autocomplete="off"
+                           required>
+                </div>
+                <button type="submit" class="btn btn-block">アカウント作成</button>
+                <p class="form-helper">
+                    すでにアカウントをお持ちの方は<a href="#" onclick="showLogin(); return false;">ログイン</a>へ
+                </p>
+            </form>
+        </div>
+
+        <!-- PIN認証フォーム -->
+        <div id="pin-auth-form" class="card auth-form hidden">
+            <h2>PIN認証</h2>
+            <p class="form-description">送金を確定するには4桁のPINコードを入力してください</p>
+            <form onsubmit="handlePinAuth(event)">
+                <div class="form-group">
+                    <label for="pin-auth">PINコード</label>
+                    <input type="password" 
+                           id="pin-auth" 
+                           required 
+                           pattern="\d{4}" 
+                           maxlength="4" 
+                           inputmode="numeric"
+                           autocomplete="off">
+                </div>
+                <button type="submit" class="btn btn-block btn-pay">認証して送金</button>
+                <button type="button" class="btn btn-block btn-cancel" onclick="handleCancel()">キャンセル</button>
+            </form>
+        </div>
+
+        <!-- URL決済用送金フォーム -->
+        <div id="payment-form" class="card payment-form hidden">
+            <div class="payment-header">
+                <h2>送金画面</h2>
+                <div class="payer-info">
+                    <p>送金元: <span id="payer-name" class="payer-name-display">-</span></p>
+                </div>
+            </div>
+            <form onsubmit="handlePayment(event)" class="amount-input-form">
+                <div class="amount-input-container">
+                    <div class="amount-input-wrapper">
+                        <input type="number" 
+                               id="payment-amount" 
+                               min="1" 
+                               step="1" 
+                               required 
+                               placeholder="0"
+                               class="amount-input"
+                               autocomplete="off">
+                        <span class="currency-label">W</span>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-pay">送金する</button>
+                <button type="button" class="btn btn-cancel" onclick="handleCancel()">キャンセル</button>
+            </form>
+        </div>
+
+        <!-- ダッシュボード -->
+        <div id="dashboard" class="hidden">
+            <div class="dashboard-grid">
+                <!-- アカウント情報 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>アカウント情報</h2>
+                    </div>
+                    <div class="balance-display">
+                        <span id="balance" class="balance">0</span>
+                        <span class="currency">W</span>
+                    </div>
+                    <div class="account-info">
+                        <div class="account-id-display">
+                            <span class="label">アカウントID:</span>
+                            <code id="account-id"></code>
+                            <button onclick="copyAccountId()" class="btn-icon" title="IDをコピー">
+                                <span class="material-icons">content_copy</span>
+                            </button>
+                        </div>
+                        <div class="username-display">
+                            <span class="label">アカウント名:</span>
+                            <span id="username"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 送金フォーム -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>送金</h2>
+                    </div>
+                    <form onsubmit="handleTransfer(event)">
+                        <div class="form-group">
+                            <label for="transfer-to">送金先（アカウントID）</label>
+                            <input type="text" id="transfer-to" 
+                                   pattern="^[A-Za-z0-9]{12}$" 
+                                   title="12桁のアカウントIDを入力してください"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="transfer-amount">金額（W）</label>
+                            <input type="number" id="transfer-amount" 
+                                   min="1" step="1" required>
+                            <span class="input-hint">1W以上の整数を入力してください</span>
+                        </div>
+                        <button type="submit" class="btn btn-block">送金する</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 取引履歴 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>取引履歴</h2>
+                </div>
+                <div id="transactions" class="transaction-list">
+                    <!-- 取引履歴がここに動的に追加されます -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const PIN_API_URL = 'https://script.google.com/macros/s/AKfycby8VRhRWog_V1JXqjieRE8vVTJIQAi1jRRHcI_1ZZ4bQAbAWzvK9EZ0ZgkPUcpw-L1S/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyknCsNpFsMFrOug2z8gm2bT8HC5zB4GwvGe579G8BLe6bT7sQRG_qaxn6Y0ZwbUZOD9Q/exec';
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>
