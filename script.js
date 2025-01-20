@@ -9,7 +9,7 @@ class LoadingManager {
     async showLoading(promise, message = '処理中...', minDuration = 1000) {
         this.messageElement.textContent = message;
         this.loadingElement.classList.remove('hidden');
-        
+
         const startTime = Date.now();
         this.activePromises.add(promise);
 
@@ -17,11 +17,11 @@ class LoadingManager {
             const result = await promise;
             const elapsed = Date.now() - startTime;
             const remaining = Math.max(0, minDuration - elapsed);
-            
+
             if (remaining > 0) {
                 await new Promise(resolve => setTimeout(resolve, remaining));
             }
-            
+
             return result;
         } finally {
             this.activePromises.delete(promise);
@@ -88,7 +88,7 @@ function showMessage(message, isError = false) {
 (async function autoLogin() {
     const savedUser = localStorage.getItem(STORAGE_KEY);
     const params = getUrlParams();
-    
+
     // URL決済パラメータがある場合は必ず自動ログインを試みる
     if (params.from && savedUser) {
         try {
@@ -148,7 +148,7 @@ function hideAllForms() {
 function updateNavButtons() {
     const usernameDisplay = document.getElementById('username-display');
     const logoutButton = document.getElementById('logout-button');
-    
+
     if (currentUser) {
         usernameDisplay.textContent = currentUser.username;
         usernameDisplay.classList.remove('hidden');
@@ -223,7 +223,7 @@ async function handleRegister(event) {
                 username: formData.username,
                 password: formData.password
             });
-            
+
             await callApi('setPin', {
                 accountId: result.accountId,
                 pin: formData.pin
@@ -231,7 +231,7 @@ async function handleRegister(event) {
         };
 
         await loadingManager.showLoading(registerPromise(), 'アカウント作成中...');
-        
+
         showMessage('アカウントが作成されました。ログインしてください。');
         showLogin();
         event.target.reset();
@@ -309,7 +309,7 @@ function handleLogout() {
 // URL決済の初期処理
 async function handleURLPayment() {
     const params = getUrlParams();
-    
+
     try {
         if (!currentUser) {
             throw new Error('ログインが必要です');
@@ -328,7 +328,7 @@ async function handleURLPayment() {
             if (!pinResult.hasPin) {
                 throw new Error('送金元アカウントのPINが設定されていません');
             }
-            
+
             // PIN確認が成功したら一時的な決済情報を設定
             pendingPayment = {
                 fromAccountId: params.from,
@@ -371,7 +371,7 @@ async function handlePinAuth(event) {
         };
 
         await loadingManager.showLoading(verifyPinPromise(), 'PIN認証中...');
-        
+
         // PIN認証成功後、金額入力画面を表示
         document.getElementById('pin-auth').value = ''; // PIN入力をクリア
         showPayment(pendingPayment.fromAccountId);
@@ -406,7 +406,7 @@ async function handlePayment(event) {
 
         const transferPromise = async () => {
             const result = await callApi('transfer', pendingPayment);
-            
+
             // 残高とトランザクション履歴の更新
             currentUser.balance = result.newBalance;
             transactions = await callApi('getTransactions', {
@@ -415,10 +415,10 @@ async function handlePayment(event) {
         };
 
         await loadingManager.showLoading(transferPromise(), '送金処理中...');
-        
+
         showMessage('送金が完了しました');
         pendingPayment = null;
-        
+
         // ダッシュボードに戻る
         setTimeout(() => {
             window.location.href = window.location.pathname;
